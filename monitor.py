@@ -348,7 +348,7 @@ if __name__ == "__main__":
         # Check and optionally update profile ID, and retrieve the ID if needed
         current_profile_id = monitor.fetch_or_save_profile_id(return_id=True)
         if current_profile_id:
-            print(f"Current profile ID: {current1_profile_id}")
+            print(f"Current profile ID: {current_profile_id}")
 
         # Monitor profile for new highlights, stories, and updates
         monitor.monitor_profile()
