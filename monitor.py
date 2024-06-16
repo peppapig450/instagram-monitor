@@ -10,7 +10,6 @@ from instaloader.instaloader import Instaloader
 from instaloader.lateststamps import LatestStamps
 from instaloader.structures import Highlight, Profile, Story, StoryItem
 
-
 # TODO: use latest stamps and setup the scheduling for the timing of the runs
 class InstagramMonitor:
     # Declare class attributes with optional types
@@ -22,10 +21,7 @@ class InstagramMonitor:
     stories_file: Path
     metadata_file: Path
 
-    def __init__(self, username, password, profile_username) -> None:
-
-        self.username = username
-        self.password = password
+    def __init__(self, profile_username, insta_loader: Instaloader) -> None:
         self.profile_username = profile_username
 
         self.profile_id_file = f"{profile_username}_profile_id.json"
@@ -57,7 +53,7 @@ class InstagramMonitor:
         self.logger = logging.getLogger(__name__)
 
         # initialize Instaloader
-        self.L = Instaloader()
+        self.L = insta_loader
 
     def setup_dirs(self):
         # Define directory and file paths
@@ -92,12 +88,6 @@ class InstagramMonitor:
                 json.dump(initial_metadata, file, indent=4)
 
     def setup(self):
-        try:
-            self.L.login(self.username, self.password)
-        except instaloader.exceptions.ConnectionException as e:
-            self.logger.error("Failed to login: %s", e)
-            raise
-
         os.makedirs(self.data_dir, exist_ok=True)
         self.load_data()
 
@@ -145,9 +135,9 @@ class InstagramMonitor:
         for highlight in self.L.get_highlights(target_profile.userid):
             if highlight.unique_id not in downloaded_ids:
                 self.logger.info(
-                    "Downloading new highlight: %s at the url %s",
+                    "Downloading new highlight: %s with %d highlight members",
                     highlight.title,
-                    highlight.url,
+                    highlight.itemcount,
                 )
                 self.download_highlights_with_metadata(highlight, timestamp)
                 new_downloads.append(highlight.unique_id)
@@ -266,9 +256,9 @@ class InstagramMonitor:
                 self.logger.info("Profile ID has changed. Updating profile ID file...")
                 self.fetch_or_save_profile_id()
             self.logger.info("Profile ID is up-to-date")
-        except Exception as e:
+        except Exception as exc:
             # TODO: more precise in the future
-            self.logger.error("Error checking or updating profile ID %s", e)
+            self.logger.error("Error checking or updating profile ID %s", exc, exc_info=True)
             raise
 
     def update_profile_info(self, profile: Profile, timestamp: str):
