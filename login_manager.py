@@ -8,16 +8,19 @@ from sqlite3 import OperationalError, connect, Cursor
 from instaloader.instaloader import ConnectionException, Instaloader
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 logger = logging.getLogger(__name__)
+
 
 class NoCookiesFileFoundWarning(UserWarning):
     pass
 
 
 class LoginManager:
-    def __init__(self, cookiefile: PathLike | None =None, sessionfile=None) -> None:
+    def __init__(self, cookiefile: PathLike | None = None, sessionfile=None) -> None:
         self.cookiefile = cookiefile or self.get_cookiefile()
         self.sessionfile = sessionfile
 
@@ -40,8 +43,11 @@ class LoginManager:
                     f"Custom path '{custom_path}' does not exist or is invalid.",
                     NoCookiesFileFoundWarning,
                 )
-        
-        logger.info("Provided file or directory invalid %s invalid. Falling back to defaults...", custom_path)
+
+        logger.info(
+            "Provided file or directory invalid %s invalid. Falling back to defaults...",
+            custom_path,
+        )
 
         # Use ordered dict to preserve order when we iterate to avoid uneccessary searching
         default_cookiepaths = OrderedDict(
@@ -65,9 +71,13 @@ class LoginManager:
                     # TODO: figure out how to filter out the developer version one programatically ideally while searching through the files
                     # return the last item in the list for now to get the regular cookies
                     # not the cookies from firefox developer version
-                    logging.info("Found Firefox 'cookies.sqlite' file at: %s", matching_files[-1])
+                    logging.info(
+                        "Found Firefox 'cookies.sqlite' file at: %s", matching_files[-1]
+                    )
                     return matching_files[-1]
-                logging.info("Found Firefox 'cookies.sqlite' file at: %s", matching_files[0])
+                logging.info(
+                    "Found Firefox 'cookies.sqlite' file at: %s", matching_files[0]
+                )
                 return matching_files[0]
 
         raise FileNotFoundError(
@@ -85,24 +95,28 @@ class LoginManager:
 
     def get_cookie_data_from_db(self) -> Cursor | None:
         logging.info("Using cookies from %s.", self.cookiefile)
-        
+
         conn = connect(str(self.cookiefile))
         try:
             cookie_data = conn.execute(
                 "SELECT name, value FROM moz_cookies WHERE baseDomain='instagram.com"
             )
+            return cookie_data
         except OperationalError as e:
             logging.warning("First SQL query with baseDomain failed with {e}")
             try:
                 cookie_data = conn.execute(
                     "SELECT name, value FROM moz_cookies WHERE host LIKE '%instagram.com'"
                 )
+                return cookie_data
             except OperationalError as e:
-                logging.error(f"Error: {e} while getting cookies from sqlite database.", exc_info=True)
-                raise OperationalError("Something went wrong getting cookies from sqlite database at {str(self.cookiefile)}")
-            
-        
-    def import_session(self):
+                logging.error(
+                    f"Error: {e} while getting cookies from sqlite database.",
+                    exc_info=True,
+                )
+                raise OperationalError(
+                    "Something went wrong getting cookies from sqlite database at {str(self.cookiefile)}"
+                ) from e
 
-        
-        
+    def import_session(self):
+        logging.info(f"Using cookies from {str(self.cookiefile)})")
