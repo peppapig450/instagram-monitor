@@ -2,10 +2,13 @@ from pathlib import Path
 import warnings
 from collections import OrderedDict
 import fnmatch
-from os import PathLike
-from sqlite3 import OperationalError, connect, Cursor
+from os import PathLike, getenv
+from contextlib import contextmanager
+from sqlite3 import OperationalError, connect
+from dotenv import load_dotenv
 
-from instaloader.instaloader import ConnectionException, Instaloader
+
+from instaloader.instaloader import ConnectionException, Instaloader, TwoFactorAuthRequiredException
 import logging
 
 logging.basicConfig(
@@ -20,9 +23,12 @@ class NoCookiesFileFoundWarning(UserWarning):
 
 
 class LoginManager:
-    def __init__(self, cookiefile: PathLike | None = None, sessionfile=None) -> None:
+    def __init__(self, cookiefile: PathLike | None = None, sessionfile="instaloader_session") -> None:
         self.cookiefile = cookiefile or self.get_cookiefile()
+        self.cookiefile_string = str(self.cookiefile)
         self.sessionfile = sessionfile
+        self.instaloader = Instaloader()
+        
 
     def get_cookiefile(self, custom_path=None):
         matching_files = []
@@ -92,31 +98,105 @@ class LoginManager:
         ]
 
         return matching_files
-
-    def get_cookie_data_from_db(self) -> Cursor | None:
-        logging.info("Using cookies from %s.", self.cookiefile)
-
-        conn = connect(str(self.cookiefile))
+    
+    def _get_cookie_data_from_db(self, conn):
         try:
             cookie_data = conn.execute(
-                "SELECT name, value FROM moz_cookies WHERE baseDomain='instagram.com"
+                "SELECT name, value FROM moz_cookies WHERE baseDomain='instagram.com'"
             )
-            return cookie_data
-        except OperationalError as e:
-            logging.warning("First SQL query with baseDomain failed with {e}")
-            try:
-                cookie_data = conn.execute(
-                    "SELECT name, value FROM moz_cookies WHERE host LIKE '%instagram.com'"
-                )
-                return cookie_data
-            except OperationalError as e:
-                logging.error(
-                    f"Error: {e} while getting cookies from sqlite database.",
-                    exc_info=True,
-                )
-                raise OperationalError(
-                    "Something went wrong getting cookies from sqlite database at {str(self.cookiefile)}"
-                ) from e
+        except OperationalError:
+            cookie_data = conn.execute(
+                "SELECT name, value FROM moz_cookies WHERE host LIKE '%instagram.com'"
+            )
+        return cookie_data
 
     def import_session(self):
-        logging.info(f"Using cookies from {str(self.cookiefile)})")
+        logging.info("Using cookies from %s", self.cookiefile_string)
+
+        # connect to the database
+        conn = connect(self.cookiefile_string)
+        
+        try:
+            # Fetch cookie data from the database
+            cookie_data = self._get_cookie_data_from_db(conn)
+            
+            # Initialize Instaloader
+            instaloader = Instaloader(max_connection_attempts=1)
+            
+            # update session cookies
+            instaloader.context._session.cookies.update(cookie_data)
+            
+            # Test login
+            username = instaloader.test_login()
+            if not username:
+                logging.error("Not logged in. Are you logged in successfully in Firefox?")
+                raise SystemExit("Not logged in. Are you logged in successfully in Firefox?")
+            
+            logging.info("Imported session cookie for %s.", username)
+            instaloader.context.username = username
+            
+            # Save session file if provided
+            if self.sessionfile:
+                instaloader.save_session_to_file(self.sessionfile)
+                
+            return instaloader
+        
+        except (ConnectionException, OperationalError) as exc:
+            # Handle exceptions
+            logging.error("Failed to import session: %s", exc, exc_info=True)
+            raise SystemExit("Failed to import session. Check connection or credentials.") from exc
+            
+    def load_credentials_from_env(self):
+        load_dotenv()
+        username = getenv("INSTAGRAM_USERNAME")
+        password = getenv("INSTAGRAM_PASSWORD")
+        if not username or not password:
+            raise SystemExit("INSTAGRAM_USERNAME or INSTAGRAM_PASSWORD not set in environment.")
+        return username, password
+        
+
+    @contextmanager
+    def session(self):
+        def login_and_yield_instaloader():
+            try:
+                # Try with session manager if provided
+                if self.sessionfile:
+                    try:
+                        # TODO: way to save the username to a file and load it here
+                        self.instaloader.load_session_from_file(username="goingdownchris", filename=self.sessionfile)
+                        logging.info("Loaded session from %s", self.sessionfile)
+                        return self.instaloader
+                        
+                    except FileNotFoundError:
+                        logging.warning("Session file %s not found, trying cookie file.", self.sessionfile)
+                        
+                # Try with cookie file
+                self.instaloader = self.import_session()
+                return self.instaloader
+    
+            
+            except (ConnectionException, OperationalError):
+                # Try with environment variables as last resort
+                logging.info("Trying to login in with environment variables.")
+                username, password = self.load_credentials_from_env()
+                
+                try:
+                    self.instaloader.login(username, password)
+                    logging.info("Logged in as %s", username)
+                    if self.sessionfile:
+                        self.instaloader.save_session_to_file(self.sessionfile)
+                    return self.instaloader
+
+                except TwoFactorAuthRequiredException as te:
+                    logging.error("Two-factor authentication required. Unable to login.")
+                    raise SystemExit("Two-factor authentication required. Unable to login.") from te
+                except ConnectionException as e:
+                    logging.error("Connection failed: %s", e)
+                    raise SystemExit(f"Connection failed: {e}") from e
+            finally:
+                # Clean up if neccessary
+                pass
+            
+        instaloader_instance = login_and_yield_instaloader()
+    
+        yield instaloader_instance
