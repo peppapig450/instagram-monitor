@@ -1,7 +1,7 @@
 import argparse
 import threading
-from monitor import InstagramMonitor
-from login_manager import LoginManager
+from src.monitor.monitor import InstagramMonitor
+from src.login.login_manager import LoginManager
 
 def main(usernames):
     login_manager = LoginManager()
