@@ -149,9 +149,9 @@ class InstagramMonitor:
         highlights_metadata = {
             "id": highlight.unique_id,
             "title": highlight.title,
-            "latest_story_creation_time": highlight.latest_media_utc.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),
+            #"latest_story_creation_time": highlight.latest_media_utc.strftime(
+            #    "%Y-%m-%d %H:%M:%S"
+            #),
             "cover_url": highlight.cover_url,
             "highlight_count": highlight.itemcount,
             "stories": [],
@@ -166,13 +166,13 @@ class InstagramMonitor:
             item_metadata = {
                 "media_id": item.mediaid,
                 "url": item.url,
-                "created_at": item.date_utc.strftime("%Y-%m-%d %H:%M:%S"),
+                #"created_at": item.date_utc.strftime("%Y-%m-%d %H:%M:%S"),
                 "caption": item.caption,
                 "caption_mentions": item.caption_mentions,
                 "is_video": item.is_video,
                 "video_url": item.video_url if item.is_video else None,
             }
-            highlights_metadata["items"].append(item_metadata)
+            highlights_metadata["stories"].append(item_metadata)
 
         self.update_metadata_file("highlights", highlights_metadata, timestamp)
 
