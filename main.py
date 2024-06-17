@@ -1,18 +1,34 @@
 import argparse
-from src.monitor import MonitorManager
+import logging
+import signal
+
 from src.login import LoginManager
+from src.monitor import MonitorManager
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 
 def main(usernames_intervals):
     login_manager = LoginManager()
+    monitor_manager = MonitorManager()
 
-    with login_manager.session() as insta_loader:
-        monitor_manager = MonitorManager()
+    def signal_handler(sig, frame):
+        logging.info("Exiting gracefully...")
+        monitor_manager.stop_all()
+        raise SystemExit
 
-        for username, interval in usernames_intervals.items():
-            monitor_manager.add_monitor(username, insta_loader, interval)
+    signal.signal(signal.SIGINT, signal_handler)
 
-    input("Press Enter to quit...")
+    try:
+        with login_manager.session() as insta_loader:
+            for username, interval in usernames_intervals.items():
+                monitor_manager.add_monitor(username, insta_loader, interval)
+
+            input("Press Enter to quit...")
+            signal.raise_signal(signal.SIGINT)
+    except KeyboardInterrupt:
+        logging.info("KeyboardInterrupt recieved. Exiting...")
 
 
 if __name__ == "__main__":
@@ -30,7 +46,7 @@ if __name__ == "__main__":
 
     # Parse usernames and intervals
     usernames_intervals = {}
-    for ui in args.username_intervals:
+    for ui in args.usernames_intervals:
         username, interval = ui.split(":")
         usernames_intervals[username] = int(interval)
 
