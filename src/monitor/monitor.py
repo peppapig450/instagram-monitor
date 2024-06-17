@@ -26,7 +26,7 @@ class InstagramMonitor:
         self.profile_id_file = f"{profile_username}_profile_id.json"
 
         # Define base directory using profile_username
-        self.data_dir = Path(f"{profile_username}_data")
+        self.data_dir = Path("output", f"{profile_username}_data")
 
         # Set up directory and file variables, creating if needed
         self.setup_dirs()
