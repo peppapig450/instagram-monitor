@@ -24,7 +24,7 @@ class NoCookiesFileFoundWarning(UserWarning):
 
 class LoginManager:
     def __init__(self, cookiefile: PathLike | None = None, sessionfile="instaloader_session") -> None:
-        self.cookiefile = cookiefile or self.get_cookiefile()
+        self.cookiefile = cookiefile if cookiefile else None
         self.cookiefile_string = str(self.cookiefile)
         self.sessionfile = sessionfile
         self.instaloader = Instaloader()
@@ -113,6 +113,7 @@ class LoginManager:
     def import_session(self):
         logging.info("Using cookies from %s", self.cookiefile_string)
 
+        self.cookiefile_string = str(self.get_cookiefile(self.cookiefile))
         # connect to the database
         conn = connect(self.cookiefile_string)
         
