@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from pprint import pprint
+import pdb
 
 import instaloader
 from dotenv import load_dotenv
@@ -44,8 +45,8 @@ class InstagramMonitor:
             "downloaded_stories": self.stories_file,
         }
 
-        self.downloaded_highlights = []
-        self.downloaded_stories = []
+        self.downloaded_highlights_list: list = []
+        self.downloaded_stories_list: list = []
         self.data = {}
 
         # Setup logging
@@ -133,7 +134,7 @@ class InstagramMonitor:
 
     def download_new_highlights(self, target_profile: Profile, timestamp: str):
         new_downloads = []
-        downloaded_ids = set(self.downloaded_highlights)
+        downloaded_ids = set(self.downloaded_highlights_list)
 
         for highlight in self.L.get_highlights(target_profile.userid):
             if highlight.unique_id not in downloaded_ids:
@@ -152,9 +153,9 @@ class InstagramMonitor:
         highlights_metadata = {
             "id": highlight.unique_id,
             "title": highlight.title,
-            #"latest_story_creation_time": highlight.latest_media_utc.strftime(
+            # "latest_story_creation_time": highlight.latest_media_utc.strftime(
             #    "%Y-%m-%d %H:%M:%S"
-            #),
+            # ),
             "cover_url": highlight.cover_url,
             "highlight_count": highlight.itemcount,
             "stories": [],
@@ -169,7 +170,7 @@ class InstagramMonitor:
             item_metadata = {
                 "media_id": item.mediaid,
                 "url": item.url,
-                #"created_at": item.date_utc.strftime("%Y-%m-%d %H:%M:%S"),
+                # "created_at": item.date_utc.strftime("%Y-%m-%d %H:%M:%S"),
                 "caption": item.caption,
                 "caption_mentions": item.caption_mentions,
                 "is_video": item.is_video,
@@ -181,10 +182,10 @@ class InstagramMonitor:
 
     def download_new_stories(self, target_profile: Profile, timestamp: str):
         new_downloads = []
-        downloaded_ids = set(self.downloaded_stories)
+        downloaded_ids = set(self.downloaded_stories_list)
 
         # story is a Story object
-        for story in self.L.get_stories(target_profile.userid):
+        for story in self.L.get_stories([target_profile.userid]):
             self.logger.info(
                 "Downloading new story with the last created story at: %s",
                 story.latest_media_utc,
@@ -261,7 +262,9 @@ class InstagramMonitor:
             self.logger.info("Profile ID is up-to-date")
         except Exception as exc:
             # TODO: more precise in the future
-            self.logger.error("Error checking or updating profile ID %s", exc, exc_info=True)
+            self.logger.error(
+                "Error checking or updating profile ID %s", exc, exc_info=True
+            )
             raise
 
     def update_profile_info(self, profile: Profile, timestamp: str):
@@ -303,16 +306,15 @@ class InstagramMonitor:
             new_downloaded_highlights = self.download_new_highlights(
                 target_profile, timestamp
             )
-            pprint(self.downloaded_highlights)
-            
-            self.downloaded_highlights.extend(new_downloaded_highlights)
+
+            self.downloaded_highlights_list.extend(new_downloaded_highlights)
             self.save_data()
 
             # Downlaod new stories
             new_downloaded_stories = self.download_new_stories(
                 target_profile, timestamp
             )
-            self.downloaded_stories.extend(new_downloaded_stories)
+            self.downloaded_stories_list.extend(new_downloaded_stories)
             self.save_data()
 
             # Update profile information
