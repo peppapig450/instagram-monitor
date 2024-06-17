@@ -294,7 +294,7 @@ class InstagramMonitor:
         # Save updated data
         self.save_data()
 
-    def monitor_profile(self):
+    def run_monitor(self):
         try:
             self.setup()
             target_profile = Profile.from_username(
