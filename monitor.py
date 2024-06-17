@@ -3,12 +3,14 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from pprint import pprint
 
 import instaloader
 from dotenv import load_dotenv
 from instaloader.instaloader import Instaloader
 from instaloader.lateststamps import LatestStamps
 from instaloader.structures import Highlight, Profile, Story, StoryItem
+
 
 # TODO: use latest stamps and setup the scheduling for the timing of the runs
 class InstagramMonitor:
@@ -80,8 +82,8 @@ class InstagramMonitor:
         # Setup the metadata file with the top level keys for the different types
         if not self.metadata_file.exists():
             initial_metadata = {
-                "highlights": [],
-                "stories": [],
+                "highlights": {},
+                "stories": {},
             }
 
             with open(self.metadata_file, "w", encoding="utf-8") as file:
@@ -114,9 +116,10 @@ class InstagramMonitor:
 
         with open(self.metadata_file, "r+", encoding="utf-8") as file:
             metadata = json.load(file)
+
             if timestamp not in metadata[category_key]:
                 metadata[category_key][timestamp] = {}
-            metadata[category_key][timestamp].append(new_metadata)
+            metadata[category_key][timestamp].update(new_metadata)
             file.seek(0)
             json.dump(metadata, file, indent=4)
 
@@ -300,6 +303,8 @@ class InstagramMonitor:
             new_downloaded_highlights = self.download_new_highlights(
                 target_profile, timestamp
             )
+            pprint(self.downloaded_highlights)
+            
             self.downloaded_highlights.extend(new_downloaded_highlights)
             self.save_data()
 
@@ -324,24 +329,3 @@ class InstagramMonitor:
         except Exception as e:
             self.logger.error("Error monitoring profile: %s", e)
             raise
-
-
-if __name__ == "__main__":
-    try:
-        load_dotenv()
-        username = os.getenv("INSTAGRAM_USERNAME")
-        password = os.getenv("INSTAGRAM_PASSWORD")
-        profile_username = "tipsosake"
-
-        monitor = InstagramMonitor(username, password, profile_username)
-
-        # Check and optionally update profile ID, and retrieve the ID if needed
-        current_profile_id = monitor.fetch_or_save_profile_id(return_id=True)
-        if current_profile_id:
-            print(f"Current profile ID: {current_profile_id}")
-
-        # Monitor profile for new highlights, stories, and updates
-        monitor.monitor_profile()
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
