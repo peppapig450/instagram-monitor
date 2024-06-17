@@ -1,10 +1,7 @@
 import logging
-from collections import deque
-from datetime import datetime
 from threading import Timer
 
-from login.login_manager import LoginManager
-from monitor.monitor import InstagramMonitor
+from .monitor import InstagramMonitor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -16,6 +13,7 @@ class MonitorInstance:
         self.insta_loader = insta_loader
         self.interval_minutes = interval_minutes
         self.monitor = InstagramMonitor(username, insta_loader)
+        self.timer: Timer | None = None
 
     def run_monitor(self):
         logging.info("Starting monitor for %s...", self.username)
@@ -33,3 +31,7 @@ class MonitorInstance:
     def run_monitor_and_reschedule(self):
         self.run_monitor()
         self.schedule_next_run()
+
+    def cancel_timer(self):
+        if self.timer:
+            self.timer.cancel()
