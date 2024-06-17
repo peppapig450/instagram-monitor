@@ -1,15 +1,18 @@
-from pathlib import Path
+import fnmatch
+import logging
 import warnings
 from collections import OrderedDict
-import fnmatch
-from os import PathLike, getenv
 from contextlib import contextmanager
+from os import PathLike, getenv
+from pathlib import Path
 from sqlite3 import OperationalError, connect
+
 from dotenv import load_dotenv
-
-
-from instaloader.instaloader import ConnectionException, Instaloader, TwoFactorAuthRequiredException
-import logging
+from instaloader.instaloader import (
+    ConnectionException,
+    Instaloader,
+    TwoFactorAuthRequiredException,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -23,12 +26,13 @@ class NoCookiesFileFoundWarning(UserWarning):
 
 
 class LoginManager:
-    def __init__(self, cookiefile: PathLike | None = None, sessionfile="instaloader_session") -> None:
+    def __init__(
+        self, cookiefile: PathLike | None = None, sessionfile="instaloader_session"
+    ) -> None:
         self.cookiefile = cookiefile if cookiefile else None
         self.cookiefile_string = str(self.cookiefile)
         self.sessionfile = sessionfile
         self.instaloader = Instaloader()
-        
 
     def get_cookiefile(self, custom_path=None):
         matching_files = []
@@ -98,7 +102,7 @@ class LoginManager:
         ]
 
         return matching_files
-    
+
     def _get_cookie_data_from_db(self, conn):
         try:
             cookie_data = conn.execute(
@@ -116,45 +120,52 @@ class LoginManager:
         self.cookiefile_string = str(self.get_cookiefile(self.cookiefile))
         # connect to the database
         conn = connect(self.cookiefile_string)
-        
+
         try:
             # Fetch cookie data from the database
             cookie_data = self._get_cookie_data_from_db(conn)
-            
+
             # Initialize Instaloader
             instaloader = Instaloader(max_connection_attempts=1)
-            
+
             # update session cookies
             instaloader.context._session.cookies.update(cookie_data)
-            
+
             # Test login
             username = instaloader.test_login()
             if not username:
-                logging.error("Not logged in. Are you logged in successfully in Firefox?")
-                raise SystemExit("Not logged in. Are you logged in successfully in Firefox?")
-            
+                logging.error(
+                    "Not logged in. Are you logged in successfully in Firefox?"
+                )
+                raise SystemExit(
+                    "Not logged in. Are you logged in successfully in Firefox?"
+                )
+
             logging.info("Imported session cookie for %s.", username)
             instaloader.context.username = username
-            
+
             # Save session file if provided
             if self.sessionfile:
                 instaloader.save_session_to_file(self.sessionfile)
-                
+
             return instaloader
-        
+
         except (ConnectionException, OperationalError) as exc:
             # Handle exceptions
             logging.error("Failed to import session: %s", exc, exc_info=True)
-            raise SystemExit("Failed to import session. Check connection or credentials.") from exc
-            
+            raise SystemExit(
+                "Failed to import session. Check connection or credentials."
+            ) from exc
+
     def load_credentials_from_env(self):
         load_dotenv()
         username = getenv("INSTAGRAM_USERNAME")
         password = getenv("INSTAGRAM_PASSWORD")
         if not username or not password:
-            raise SystemExit("INSTAGRAM_USERNAME or INSTAGRAM_PASSWORD not set in environment.")
+            raise SystemExit(
+                "INSTAGRAM_USERNAME or INSTAGRAM_PASSWORD not set in environment."
+            )
         return username, password
-        
 
     @contextmanager
     def session(self):
@@ -164,23 +175,27 @@ class LoginManager:
                 if self.sessionfile:
                     try:
                         # TODO: way to save the username to a file and load it here
-                        self.instaloader.load_session_from_file(username="goingdownchris", filename=self.sessionfile)
+                        self.instaloader.load_session_from_file(
+                            username="goingdownchris", filename=self.sessionfile
+                        )
                         logging.info("Loaded session from %s", self.sessionfile)
                         return self.instaloader
-                        
+
                     except FileNotFoundError:
-                        logging.warning("Session file %s not found, trying cookie file.", self.sessionfile)
-                        
+                        logging.warning(
+                            "Session file %s not found, trying cookie file.",
+                            self.sessionfile,
+                        )
+
                 # Try with cookie file
                 self.instaloader = self.import_session()
                 return self.instaloader
-    
-            
+
             except (ConnectionException, OperationalError):
                 # Try with environment variables as last resort
                 logging.info("Trying to login in with environment variables.")
                 username, password = self.load_credentials_from_env()
-                
+
                 try:
                     self.instaloader.login(username, password)
                     logging.info("Logged in as %s", username)
@@ -189,15 +204,19 @@ class LoginManager:
                     return self.instaloader
 
                 except TwoFactorAuthRequiredException as te:
-                    logging.error("Two-factor authentication required. Unable to login.")
-                    raise SystemExit("Two-factor authentication required. Unable to login.") from te
+                    logging.error(
+                        "Two-factor authentication required. Unable to login."
+                    )
+                    raise SystemExit(
+                        "Two-factor authentication required. Unable to login."
+                    ) from te
                 except ConnectionException as e:
                     logging.error("Connection failed: %s", e)
                     raise SystemExit(f"Connection failed: {e}") from e
             finally:
                 # Clean up if neccessary
                 pass
-            
+
         instaloader_instance = login_and_yield_instaloader()
-    
+
         yield instaloader_instance

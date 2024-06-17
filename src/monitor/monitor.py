@@ -3,14 +3,10 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from pprint import pprint
-import pdb
 
-import instaloader
-from dotenv import load_dotenv
 from instaloader.instaloader import Instaloader
 from instaloader.lateststamps import LatestStamps
-from instaloader.structures import Highlight, Profile, Story, StoryItem
+from instaloader.structures import Highlight, Profile, Story
 
 
 # TODO: use latest stamps and setup the scheduling for the timing of the runs
