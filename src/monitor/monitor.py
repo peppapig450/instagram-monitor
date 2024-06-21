@@ -3,6 +3,8 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
+import tempfile
+import shutil
 
 from instaloader.instaloader import Instaloader
 from instaloader.lateststamps import LatestStamps
@@ -15,6 +17,7 @@ class InstagramMonitor:
     data_dir: Path
     highlights_dir: Path
     stories_dir: Path
+    profile_dir: Path
     data_file: Path
     highlights_file: Path
     stories_file: Path
@@ -59,6 +62,7 @@ class InstagramMonitor:
         dir_file_mapping = {
             "highlights_dir": self.data_dir / "highlights",
             "stories_dir": self.data_dir / "stories",
+            "profile_dir": self.data_dir / "profile",
             "data_file": self.data_dir / "data.json",
             "highlights_file": self.data_dir.joinpath(
                 "highlights", "downloaded_highlights.json"
@@ -219,6 +223,33 @@ class InstagramMonitor:
 
         self.update_metadata_file("stories", stories_metadata, timestamp)
 
+    def download_profile_and_move(self, target_profile: Profile):
+        """Downloads an Instagram profile, stores it in a temporary directory, and moves it to the output directory with the rest of the username's data.
+        This is a hack around the 'download_profiles' function not providing a way to specify where to download, and
+        thus downloading in the projects root directory.
+
+        Args:
+            target_profile (Profile): The Profile object representing the Instagram profile to download.
+        """
+        profile: set[Profile] = {target_profile}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir_path = Path(temp_dir)
+            # Download profile in temporary directory
+            logging.info(
+                "Downloading the profile to the temporary directory: %s", temp_dir
+            )
+            self.L.download_profiles(
+                profiles=profile,
+                tagged=True,
+            )
+
+            # Move files from temp_dir to self.profile_dir
+            for _, _, files in os.walk(temp_dir):
+                for filename in files:
+                    source_file = temp_dir_path / filename
+                    destination_file = self.profile_dir / filename
+                    shutil.move(source_file, destination_file)
+
     def fetch_or_save_profile_id(self, return_id=False):
         # If return_id is false (default) save to file
         # If return_id is true return the id and don't save to file
@@ -316,13 +347,8 @@ class InstagramMonitor:
             # Update profile information
             self.update_profile_info(target_profile, timestamp)
 
-            # Download tagged posts and profile picture
-            self.L.download_profile(
-                self.profile_username,
-                profile_pic=True,
-                download_stories=False,
-                download_tagged=True,
-            )
+            # Download profile
+            self.download_profile_and_move(target_profile)
 
         except Exception as e:
             self.logger.error("Error monitoring profile: %s", e)
