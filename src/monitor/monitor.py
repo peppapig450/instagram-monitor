@@ -115,14 +115,23 @@ class InstagramMonitor:
     def update_metadata_file(self, category_key: str, new_metadata, timestamp: str):
         """Update global metadata file with timestamped entry for a category key (highlights, stories)"""
 
-        with open(self.metadata_file, "r+", encoding="utf-8") as file:
-            metadata = json.load(file)
+        try:
+            with open(self.metadata_file, "r+", encoding="utf-8") as file:
+                metadata = json.load(file)
 
-            if timestamp not in metadata[category_key]:
-                metadata[category_key][timestamp] = {}
-            metadata[category_key][timestamp].update(new_metadata)
-            file.seek(0)
-            json.dump(metadata, file, indent=4)
+                if timestamp not in metadata[category_key]:
+                    metadata[category_key][timestamp] = {}
+                metadata[category_key][timestamp].update(new_metadata)
+                file.seek(0)
+                json.dump(metadata, file, indent=4)
+        except json.JSONDecodeError as exc:
+            logging.error(
+                "Error occured while updating the metadata for %s in the file %s, Error: %s",
+                category_key,
+                self.metadata_file,
+                exc,
+                exc_info=True,
+            )
 
     def compare_and_log_changes(self, old_list, new_list, list_name):
         added = set(new_list) - set(old_list)
@@ -224,9 +233,10 @@ class InstagramMonitor:
         self.update_metadata_file("stories", stories_metadata, timestamp)
 
     def download_profile_and_move(self, target_profile: Profile):
-        """Downloads an Instagram profile, stores it in a temporary directory, and moves it to the output directory with the rest of the username's data.
-        This is a hack around the 'download_profiles' function not providing a way to specify where to download, and
-        thus downloading in the projects root directory.
+        """
+        Downloads an Instagram profile, stores it in a temporary directory, and moves it to the output directory with
+        the rest of the username's data. This is a hack around the 'download_profiles' function not providing a way to
+        specify where to download, and thus downloading in the projects root directory.
 
         Args:
             target_profile (Profile): The Profile object representing the Instagram profile to download.
@@ -286,6 +296,7 @@ class InstagramMonitor:
             if stored_profile_id != current_profile_id:
                 self.logger.info("Profile ID has changed. Updating profile ID file...")
                 self.fetch_or_save_profile_id()
+
             self.logger.info("Profile ID is up-to-date")
         except Exception as exc:
             # TODO: more precise in the future
