@@ -26,12 +26,9 @@ class NoCookiesFileFoundWarning(UserWarning):
 
 
 class LoginManager:
-    def __init__(
-        self, cookiefile: PathLike | None = None, sessionfile="instaloader_session"
-    ) -> None:
+    def __init__(self, cookiefile: PathLike | None = None) -> None:
         self.cookiefile = cookiefile if cookiefile else None
         self.cookiefile_string = str(self.cookiefile)
-        self.sessionfile = sessionfile
         self.instaloader = Instaloader()
 
     def get_cookiefile(self, custom_path=None):
@@ -144,10 +141,6 @@ class LoginManager:
             logging.info("Imported session cookie for %s.", username)
             instaloader.context.username = username
 
-            # Save session file if provided
-            if self.sessionfile:
-                instaloader.save_session_to_file(self.sessionfile)
-
             return instaloader
 
         except (ConnectionException, OperationalError) as exc:
@@ -171,22 +164,6 @@ class LoginManager:
     def session(self):
         def login_and_yield_instaloader():
             try:
-                # Try with session manager if provided
-                if self.sessionfile:
-                    try:
-                        # TODO: way to save the username to a file and load it here
-                        self.instaloader.load_session_from_file(
-                            username="goingdownchris", filename=self.sessionfile
-                        )
-                        logging.info("Loaded session from %s", self.sessionfile)
-                        return self.instaloader
-
-                    except FileNotFoundError:
-                        logging.warning(
-                            "Session file %s not found, trying cookie file.",
-                            self.sessionfile,
-                        )
-
                 # Try with cookie file
                 self.instaloader = self.import_session()
                 return self.instaloader
@@ -199,8 +176,6 @@ class LoginManager:
                 try:
                     self.instaloader.login(username, password)
                     logging.info("Logged in as %s", username)
-                    if self.sessionfile:
-                        self.instaloader.save_session_to_file(self.sessionfile)
                     return self.instaloader
 
                 except TwoFactorAuthRequiredException as te:
