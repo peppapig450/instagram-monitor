@@ -170,7 +170,6 @@ class InstagramMonitor:
             "stories": [],
         }
 
-        # item is a StoryItem
         # get metadata for each highlight in the highlights
         for item in highlight.get_items():
             # Download the items within the highlight
@@ -232,6 +231,8 @@ class InstagramMonitor:
 
         self.update_metadata_file("stories", stories_metadata, timestamp)
 
+    # TODO: This isn't working the 'profile' dir is still downloaded in root directory, look into source code to figure out why
+    # in the meantime just shutil after download as a work-around
     def download_profile_and_move(self, target_profile: Profile):
         """
         Downloads an Instagram profile, stores it in a temporary directory, and moves it to the output directory with
