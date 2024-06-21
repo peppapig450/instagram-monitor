@@ -1,10 +1,10 @@
 import json
 import logging
 import os
+import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
-import tempfile
-import shutil
 
 from instaloader.instaloader import Instaloader
 from instaloader.lateststamps import LatestStamps
@@ -23,7 +23,7 @@ class InstagramMonitor:
     stories_file: Path
     metadata_file: Path
 
-    def __init__(self, profile_username, insta_loader: Instaloader) -> None:
+    def __init__(self, profile_username: str, insta_loader: Instaloader) -> None:
         self.profile_username = profile_username
 
         self.profile_id_file = f"{profile_username}_profile_id.json"
