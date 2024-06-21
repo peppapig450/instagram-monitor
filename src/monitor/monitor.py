@@ -170,7 +170,6 @@ class InstagramMonitor:
             "stories": [],
         }
 
-        # item is a StoryItem
         # get metadata for each highlight in the highlights
         for item in highlight.get_items():
             # Download the items within the highlight
