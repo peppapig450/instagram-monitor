@@ -9,6 +9,7 @@ from src.monitor import MonitorManager
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 
+# TODO: background the thread
 def main(usernames_intervals):
     login_manager = LoginManager()
     monitor_manager = MonitorManager()
