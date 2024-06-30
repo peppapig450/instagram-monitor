@@ -56,7 +56,7 @@ class InstagramMonitor:
         # initialize Instaloader
         self.L = insta_loader
 
-        self.download_highlights: bool = args.download_highighlights
+        self.download_highlights: bool = args.download_highlights
         self.download_stories: bool = args.download_stories
 
     def setup_dirs(self):
