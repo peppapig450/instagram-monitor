@@ -306,6 +306,32 @@ class InstagramMonitor:
             )
             raise
 
+    def _get_following_not_following_back(
+        self, followers: list[tuple[int, str]], following: list[tuple[int, str]]
+    ):
+        """
+        This function finds usernames in following but not in followers.
+
+        Args:
+            current_followers: A list of tuples containing (user_id, username) for followers.
+            current_following: A list of tuples containing (user_id, username) for following.
+
+        Returns:
+            A list of usernames that are in following but not in followers.
+        """
+        # Extract usernames from both lists
+        follower_usernames = [username for _, username in followers]
+        following_usernames = [username for _, username in following]
+
+        # Find usernames not in followers but in following
+        usernames_not_following_back = [
+            username
+            for username in following_usernames
+            if username not in follower_usernames
+        ]
+
+        return usernames_not_following_back
+
     def update_profile_info(self, profile: Profile, timestamp: str):
         # Fetch information about the profile
         current_followers_count = profile.followers
@@ -320,6 +346,10 @@ class InstagramMonitor:
             (followee.userid, followee.username) for followee in profile.get_followees()
         ]
 
+        not_following_back = self._get_following_not_following_back(
+            current_followers, current_following
+        )
+
         # Save the data dictionary under the timestamp key
         self.data[timestamp] = {
             "followers_count": current_followers_count,
@@ -328,6 +358,7 @@ class InstagramMonitor:
             "profile_pic_url": profile_pic_url,
             "followers": current_followers,
             "following": current_following,
+            "not_following_back": not_following_back,
         }
 
         # Save updated data
