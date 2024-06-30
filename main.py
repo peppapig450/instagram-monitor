@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 
 # TODO: background the thread
-def main(usernames_intervals):
+def main(usernames_intervals, args: argparse.Namespace):
     login_manager = LoginManager()
     monitor_manager = MonitorManager()
 
@@ -24,12 +24,13 @@ def main(usernames_intervals):
     try:
         with login_manager.session() as insta_loader:
             for username, interval in usernames_intervals.items():
-                monitor_manager.add_monitor(username, insta_loader, interval)
+                monitor_manager.add_monitor(username, insta_loader, interval, args)
 
             input("Press Enter to quit...")
             signal.raise_signal(signal.SIGINT)
     except KeyboardInterrupt:
         logging.info("KeyboardInterrupt recieved. Exiting...")
+        monitor_manager.stop_all()
 
 
 if __name__ == "__main__":
@@ -42,6 +43,22 @@ if __name__ == "__main__":
         nargs="+",
         help="Instagram usernames and intervals to monitor (e.g., user1:15 user2:30)",
     )
+    parser.add_argument(
+        "--no-highlights",
+        "-nh",
+        action="store_false",
+        dest="download_highlights",
+        default=True,
+        help="Skip downloading highlights.",
+    )
+    parser.add_argument(
+        "--no-stories",
+        "-ns",
+        action="store_false",
+        dest="download_stories",
+        default=True,
+        help="Skip downloading stories.",
+    )
 
     args = parser.parse_args()
 
@@ -51,4 +68,4 @@ if __name__ == "__main__":
         username, interval = ui.split(":")
         usernames_intervals[username] = int(interval)
 
-    main(usernames_intervals)
+    main(usernames_intervals, args)

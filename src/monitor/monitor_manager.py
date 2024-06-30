@@ -8,8 +8,10 @@ class MonitorManager:
         self.monitors: deque[MonitorInstance] = deque()
         self.current_monitor = None
 
-    def add_monitor(self, username: str, insta_loader, interval_minutes):
-        monitor_instance = MonitorInstance(username, insta_loader, interval_minutes)
+    def add_monitor(self, username: str, insta_loader, interval_minutes, args):
+        monitor_instance = MonitorInstance(
+            username, insta_loader, interval_minutes, args
+        )
         self.monitors.append(monitor_instance)
 
         if len(self.monitors) == 1:

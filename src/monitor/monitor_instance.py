@@ -8,11 +8,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 
 class MonitorInstance:
-    def __init__(self, username: str, insta_loader, interval_minutes):
+    def __init__(self, username: str, insta_loader, interval_minutes, args):
         self.username = username
         self.insta_loader = insta_loader
         self.interval_minutes = interval_minutes
-        self.monitor = InstagramMonitor(username, insta_loader)
+        self.monitor = InstagramMonitor(username, insta_loader, args)
         self.timer: Timer | None = None
 
     def run_monitor(self):

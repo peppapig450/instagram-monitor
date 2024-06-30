@@ -7,7 +7,6 @@ from datetime import datetime
 from pathlib import Path
 
 from instaloader.instaloader import Instaloader
-from instaloader.lateststamps import LatestStamps
 from instaloader.structures import Highlight, Profile, Story
 
 
@@ -23,7 +22,7 @@ class InstagramMonitor:
     stories_file: Path
     metadata_file: Path
 
-    def __init__(self, profile_username: str, insta_loader: Instaloader) -> None:
+    def __init__(self, profile_username: str, insta_loader: Instaloader, args) -> None:
         self.profile_username = profile_username
 
         self.profile_id_file = f"{profile_username}_profile_id.json"
@@ -56,6 +55,9 @@ class InstagramMonitor:
 
         # initialize Instaloader
         self.L = insta_loader
+
+        self.download_highlights: bool = args.download_highighlights
+        self.download_stories: bool = args.download_stories
 
     def setup_dirs(self):
         # Define directory and file paths
@@ -373,19 +375,21 @@ class InstagramMonitor:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             # Download new highlights
-            new_downloaded_highlights = self.download_new_highlights(
-                target_profile, timestamp
-            )
+            if self.download_highlights:
+                new_downloaded_highlights = self.download_new_highlights(
+                    target_profile, timestamp
+                )
 
-            self.downloaded_highlights_list.extend(new_downloaded_highlights)
-            self.save_data()
+                self.downloaded_highlights_list.extend(new_downloaded_highlights)
+                self.save_data()
 
             # Download new stories
-            new_downloaded_stories = self.download_new_stories(
-                target_profile, timestamp
-            )
-            self.downloaded_stories_list.extend(new_downloaded_stories)
-            self.save_data()
+            if self.download_stories:
+                new_downloaded_stories = self.download_new_stories(
+                    target_profile, timestamp
+                )
+                self.downloaded_stories_list.extend(new_downloaded_stories)
+                self.save_data()
 
             # Update profile information
             self.update_profile_info(target_profile, timestamp)
