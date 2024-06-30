@@ -380,7 +380,7 @@ class InstagramMonitor:
             self.downloaded_highlights_list.extend(new_downloaded_highlights)
             self.save_data()
 
-            # Downlaod new stories
+            # Download new stories
             new_downloaded_stories = self.download_new_stories(
                 target_profile, timestamp
             )
