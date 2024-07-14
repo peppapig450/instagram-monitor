@@ -26,3 +26,9 @@ session.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:12
 ## Solutions:
 1. Try to use get_iphone_json
 2. Figure out how to mirror the browser request that gets the likes
+
+
+
+# Temporary Workaround
+Use requests with a Session taken from the instaloadercontext, and then update the cookies and headers so that we can make /api/v1/ requests
+and pass information from the instaloader instance when we can
