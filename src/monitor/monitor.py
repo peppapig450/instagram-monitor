@@ -136,8 +136,11 @@ class InstagramMonitor:
             )
 
     def compare_and_log_changes(self, old_list, new_list, list_name):
-        added = set(new_list) - set(old_list)
-        removed = set(old_list) - set(new_list)
+        new_list_set = set(new_list)
+        old_list_set = set(old_list)
+        
+        added = new_list_set- old_list_set
+        removed = old_list_set - new_list_set
         if added:
             self.logger.info("New %s: %s", list_name, added)
         if removed:
