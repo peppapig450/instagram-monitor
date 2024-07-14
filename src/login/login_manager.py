@@ -188,9 +188,6 @@ class LoginManager:
                 except ConnectionException as e:
                     logging.error("Connection failed: %s", e)
                     raise SystemExit(f"Connection failed: {e}") from e
-            finally:
-                # Clean up if neccessary
-                pass
 
         instaloader_instance = login_and_yield_instaloader()
 
